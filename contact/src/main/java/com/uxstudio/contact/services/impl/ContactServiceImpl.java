@@ -5,13 +5,19 @@ import com.uxstudio.contact.domains.ContactEntity;
 import com.uxstudio.contact.repositories.ContactRepository;
 import com.uxstudio.contact.services.ContactService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.info.ProjectInfoProperties;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Service;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,15 +32,37 @@ public class ContactServiceImpl implements ContactService {
     }
 
     @Override
-    public Contact create(final Contact contact) {
+    public Contact saveContact(final Contact contact) {
         final ContactEntity contactEntity = contactToContactEntity(contact);
         final ContactEntity savedContactEntity = contactRepository.save(contactEntity);
         return contactEntityToContact(savedContactEntity);
     }
 
     @Override
-    public Optional<Contact> getContactById(int id) {
-        var foundContact = contactRepository.findById((long)id);
+    public String saveProfilePicture(MultipartFile profilePicture) {
+        try {
+            String uploadDir = "uploads";
+
+            Path uploadPath = Paths.get(uploadDir);
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
+
+            String fileName = UUID.randomUUID() + "-" + profilePicture.getOriginalFilename();
+            Path filePath = uploadPath.resolve(fileName);
+
+            Files.copy(profilePicture.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+            return filePath.toString();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to store profile picture", e);
+        }
+    }
+
+
+    @Override
+    public Optional<Contact> getContactById(Long id) {
+        var foundContact = contactRepository.findById(id);
         return foundContact.map(contact -> contactEntityToContact(contact));
     }
 
@@ -48,32 +76,33 @@ public class ContactServiceImpl implements ContactService {
     }
 
     @Override
-    public void deleteContactById(int id) {
+    public void deleteContactById(Long id) {
         try {
-            contactRepository.deleteById((long)id);
+            contactRepository.deleteById(id);
 
         } catch (final EmptyResultDataAccessException ex) {
             log.debug("Attempted to delete non-existing contact", ex);
         }
     }
 
-    // todo PUT
-
     private ContactEntity contactToContactEntity(Contact contact) {
         return ContactEntity.builder()
-            .id(contact.getId())
-            .name(contact.getName())
-            .phoneNumber(contact.getPhoneNumber())
-            .email(contact.getEmail())
-            .build();
+                .id(contact.getId())
+                .name(contact.getName())
+                .phoneNumber(contact.getPhoneNumber())
+                .email(contact.getEmail())
+                .profilePictureUrl(contact.getProfilePictureUrl()) // Include profilePictureUrl
+                .build();
     }
 
     private Contact contactEntityToContact(ContactEntity contactEntity) {
         return Contact.builder()
-            .id(contactEntity.getId())
-            .name(contactEntity.getName())
-            .phoneNumber(contactEntity.getPhoneNumber())
-            .email(contactEntity.getEmail())
-            .build();
+                .id(contactEntity.getId())
+                .name(contactEntity.getName())
+                .phoneNumber(contactEntity.getPhoneNumber())
+                .email(contactEntity.getEmail())
+                .profilePictureUrl(contactEntity.getProfilePictureUrl()) // Include profilePictureUrl
+                .build();
     }
+
 }
