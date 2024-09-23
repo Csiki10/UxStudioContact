@@ -11,8 +11,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 public class Contact {
-    private int id;
+    private Long id;
     private String name;
     private String phoneNumber;
     private String email;
+    private String profilePictureUrl;
 }

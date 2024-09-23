@@ -8,6 +8,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,19 +31,20 @@ public class ContactServiceImplTest {
     private ContactServiceImpl underTest;
 
     @Test
-    public void testThatContactIsSaved() {
+    public void testThatContactIsSavedWithProfilePicture() throws Exception {
         final Contact contact = testContact();
         final ContactEntity contactEntity = testContactEntity();
 
         when(contactRepository.save(eq(contactEntity))).thenReturn(contactEntity);
-        final Contact res = underTest.create(contact);
-        assertEquals(contact, res);
+
+        final Contact savedContact = underTest.saveContact(contact);
+        assertEquals(contact, savedContact);
     }
 
     @Test
     public void testThatGetContactByIdReturnsEmptyWhenNoContact() {
-        final int id = 123;
-        when(contactRepository.findById(eq((long)id))).thenReturn(Optional.empty());
+        final long id = 123L;
+        when(contactRepository.findById(eq(id))).thenReturn(Optional.empty());
 
         final Optional<Contact> result = underTest.getContactById(id);
         assertEquals(Optional.empty(), result);
@@ -52,7 +55,7 @@ public class ContactServiceImplTest {
         final Contact contact = testContact();
         final ContactEntity contactEntity = testContactEntity();
 
-        when(contactRepository.findById(eq((long)contact.getId()))).thenReturn(Optional.of(contactEntity));
+        when(contactRepository.findById(eq((long) contact.getId()))).thenReturn(Optional.of(contactEntity)); // cast to long
 
         final Optional<Contact> result = underTest.getContactById(contact.getId());
         assertEquals(Optional.of(contact), result);
@@ -75,8 +78,8 @@ public class ContactServiceImplTest {
 
     @Test
     public void testDeleteContactDeletesContact() {
-        final int id = 123;
+        final long id = 123L;
         underTest.deleteContactById(id);
-        verify(contactRepository, times(1)).deleteById(eq((long)id));
+        verify(contactRepository, times(1)).deleteById(eq(id));
     }
 }
